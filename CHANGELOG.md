@@ -1,4 +1,4 @@
-## [project-title] Changelog
+## [communication-services-azure-managed-apps] Changelog
 
 <a name="x.y.z"></a>
 # x.y.z (yyyy-mm-dd)

@@ -1,57 +1,26 @@
-# Project Name
+# Azure Managed Application samples
 
-(short, 1-3 sentenced, description of the project)
+## Abstract
+This repository contains Azure Managed Applications samples for Azure Communication Services, that can be used as reference for creating and consuming managed applications for Azure Communication services.
 
-## Features
+## Documentation
 
-This project framework provides the following features:
+[Azure Communication Services overview](https://learn.microsoft.com/en-us/azure/communication-services/overview)
 
-* Feature 1
-* Feature 2
-* ...
+[Azure Managed Application overview](https://docs.microsoft.com/en-us/azure/azure-resource-manager/managed-application-overview)
 
-## Getting Started
+[Create and publish Azure Managed Applications to Service Catalog](https://docs.microsoft.com/en-us/azure/azure-resource-manager/managed-application-publishing)
 
-### Prerequisites
+[Create and publish Azure Managed Applications to Azure Marketplace](https://docs.microsoft.com/en-us/azure/azure-resource-manager/managed-application-author-marketplace)
 
-(ideally very short, if any)
+[Consume an Azure Managed Application](https://docs.microsoft.com/en-us/azure/azure-resource-manager/managed-application-consumption)
 
-- OS
-- Library version
-- ...
+[Create UI definitions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/managed-application-createuidefinition-overview)
 
-### Installation
+[Azure Managed Application samples](https://github.com/Azure/azure-managedapp-samples/)
 
-(ideally very short)
+## Contributing
 
-- npm install [package name]
-- mvn install
-- ...
+To contribute and get started, please visit our [**contribution guide**](./1-contribution-guide/README.md#contribution-guide).
 
-### Quickstart
-(Add steps to get up and running quickly)
-
-1. git clone [repository clone url]
-2. cd [repository name]
-3. ...
-
-
-## Demo
-
-A demo app is included to show how to use the project.
-
-To run the demo, follow these steps:
-
-(Add steps to start up the demo)
-
-1.
-2.
-3.
-
-## Resources
-
-(Any additional resources or related projects)
-
-- Link to supporting information
-- Link to similar sample
-- ...
+*This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.*
