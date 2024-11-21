@@ -1,0 +1,358 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "communicationServicesNamePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Communication Services name"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "global",
+            "metadata": {
+                "description": "Communication Services location"
+            }
+        },
+        "datalocation": {
+            "type": "string",
+            "metadata": {
+                "description": "Communication Services datalocation"
+            }
+        },
+        "analyticsWorkspaceNamePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Logs Analytics Workspace name"
+            }
+        },
+        "userAssignedIdentityName": {
+            "type": "string",
+            "metadata": {
+                "description": "UserAssigned Identity name"
+            }
+        },
+        "todayUtcNow": {
+            "type": "string",
+            "defaultValue": "[utcNow('yyyyMMddHHmmss')]"
+        },
+        "storageAccountNamePrefix": {
+            "type": "string"
+        },
+        "storageAccountType": {
+            "type": "string"
+        },
+        "storageAccountLocation": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]"
+        },
+        "cognitiveServicesNamePrefix": {
+            "type": "string"
+        },
+        "cognitiveServicesSku": {
+            "type": "string"
+        },
+        "cognitiveServicesLocation": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "communicationServicesName": "[concat(parameters('communicationServicesNamePrefix'), parameters('todayUtcNow'))]",
+        "systemtopicName": "[concat(variables('communicationServicesName'), '-topic')]",
+        "eventSubscriptionName": "[concat(variables('systemTopicName'), '/acseventsWebhookSub')]",
+        "storageQueueEventSubscriptionName": "[concat(variables('systemTopicName'), '/acseventsStorageQueueSub')]",
+        "analyticsWorkspaceName":"[concat(parameters('analyticsWorkspaceNamePrefix'), parameters('todayUtcNow'))]",
+        "storageAccountName": "[concat(parameters('storageAccountNamePrefix'), parameters('todayUtcNow'))]",
+        "storagequeueName" : "eventsqueue",
+        "storageQueueDataSenderRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')]",
+        "cognitiveServicesUserRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')]",
+        "cognitiveServicesName": "[concat(parameters('cognitiveServicesNamePrefix'), parameters('todayUtcNow'))]",
+      },
+    "resources": [
+         {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "2023-07-31-preview",
+            "name": "[parameters('userAssignedIdentityName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {}
+        },        
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[guid(resourceGroup().id, variables('storageQueueDataSenderRole'))]",
+            "properties": {
+                "roleDefinitionId": "[variables('storageQueueDataSenderRole')]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('userAssignedIdentityName')), '2023-07-31-preview').principalId]",
+                "principalType": "ServicePrincipal",
+                "scope": "[resourceGroup().id]"
+            }
+        },                   
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[variables('storageAccountName')]",
+            "apiVersion": "2023-05-01",
+            "location": "[parameters('storageAccountLocation')]",
+            "sku": {
+                "name": "[parameters('storageAccountType')]"
+            },
+            "kind": "Storage",
+            "properties": {
+                "minimumTlsVersion": "TLS1_2",
+                "allowBlobPublicAccess": false,
+                "allowSharedKeyAccess": false,
+                "networkAcls": {
+                    "ipv6Rules": [],
+                    "bypass": "AzureServices",
+                    "virtualNetworkRules": [],
+                    "ipRules": [],
+                    "defaultAction": "Allow"
+                },
+                "supportsHttpsTrafficOnly": true
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/queueServices",
+            "apiVersion": "2023-05-01",
+            "name": "[concat(variables('storageAccountName'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+            ],
+            "properties": {
+                "cors": {
+                "corsRules": []
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/queueServices/queues",
+            "apiVersion": "2023-05-01",
+            "name": "[concat(variables('storageAccountName'),'/default/', variables('storagequeueName'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/queueServices', variables('storageAccountName'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+            ],
+            "properties": {
+                "metadata": {}
+            }
+        },
+        {
+            "type": "Microsoft.Communication/CommunicationServices",
+            "apiVersion": "2023-06-01-preview",
+            "name": "[variables('communicationServicesName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "dataLocation": "[parameters('datalocation')]"
+            },
+            "identity": {
+                "type": "SystemAssigned,UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('userAssignedIdentityName'))]": {}
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('userAssignedIdentityName'))]"
+            ]
+        },
+        {
+            "name": "[variables('systemtopicName')]",
+            "type": "Microsoft.EventGrid/systemTopics",
+            "apiVersion": "2023-06-01-preview",
+            "location": "[parameters('location')]",
+            "properties": {
+                "source": "[resourceId('Microsoft.Communication/CommunicationServices', variables('communicationServicesName'))]",
+                "topicType": "Microsoft.Communication.CommunicationServices",
+                "mode": "Incremental"
+            },
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('userAssignedIdentityName'))]": {}
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Communication/CommunicationServices', variables('communicationServicesName'))]",
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('userAssignedIdentityName'))]"
+            ]
+        },
+        {
+            "name": "[variables('eventSubscriptionName')]",
+            "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions",
+            "apiVersion": "2023-06-01-preview",
+            "properties": {
+                "destination": {
+                    "endpointType": "Webhook",
+                    "properties":{  
+                        "endpointUrl": "https://acseventgridviewer.azurewebsites.net/api/updates",
+                        "maxEventsPerBatch":1,  
+                        "preferredBatchSizeInKilobytes":64
+                    }    
+                },
+                "eventDeliverySchema": "EventGridSchema",
+                "filter": {
+                    "enableAdvancedFilteringOnArrays": true,
+                    "includedEventTypes": [
+                        "Microsoft.Communication.ChatMessageReceived",
+                        "Microsoft.Communication.IncomingCall"
+                    ],
+                    "isSubjectCaseSensitive": false
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.EventGrid/systemTopics', variables('systemtopicName'))]"
+            ]
+       },
+       {
+            "name": "[variables('storageQueueEventSubscriptionName')]",
+            "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions",
+            "apiVersion": "2023-06-01-preview",
+            "properties": {
+                "destination": {
+                    "properties": {
+                        "resourceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+                        "queueName": "[variables('storagequeueName')]",
+                        "queueMessageTimeToLiveInSeconds": 604800
+                    },
+                    "endpointType": "StorageQueue"
+                },
+                "eventDeliverySchema": "EventGridSchema",
+                "retryPolicy": {
+                  "eventTimeToLiveInMinutes": 10,
+                  "maxDeliveryAttempts": 10
+                },
+                "filter": {
+                    "enableAdvancedFilteringOnArrays": true,
+                    "includedEventTypes": [
+                        "Microsoft.Communication.ChatMessageReceived",
+                        "Microsoft.Communication.ChatMessageEdited",
+                        "Microsoft.Communication.ChatMessageDeleted",
+                        "Microsoft.Communication.ChatThreadCreatedWithUser",
+                        "Microsoft.Communication.ChatThreadWithUserDeleted",
+                        "Microsoft.Communication.ChatThreadPropertiesUpdatedPerUser",
+                        "Microsoft.Communication.ChatParticipantAddedToThreadWithUser",
+                        "Microsoft.Communication.ChatParticipantRemovedFromThreadWithUser",
+                        "Microsoft.Communication.ChatThreadCreated",
+                        "Microsoft.Communication.ChatThreadDeleted",
+                        "Microsoft.Communication.ChatThreadParticipantAdded",
+                        "Microsoft.Communication.ChatThreadParticipantRemoved",
+                        "Microsoft.Communication.ChatMessageReceivedInThread",
+                        "Microsoft.Communication.ChatThreadPropertiesUpdated",
+                        "Microsoft.Communication.ChatMessageEditedInThread",
+                        "Microsoft.Communication.ChatMessageDeletedInThread",
+                        "Microsoft.Communication.IncomingCall",
+                        "Microsoft.Communication.SMSReceived"
+                    ],
+                    "isSubjectCaseSensitive": false
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.EventGrid/systemTopics', variables('systemtopicName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+            ]
+       },
+       {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2022-10-01",
+            "name": "[variables('analyticsWorkspaceName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "sku": {
+                    "name": "pergb2018"
+                },
+                "retentionInDays": 30,
+                "features": {
+                    "enableLogAccessUsingOnlyResourcePermissions": true
+                },
+                "workspaceCapping": {
+                    "dailyQuotaGb": -1
+                },
+                "publicNetworkAccessForIngestion": "Enabled",
+                "publicNetworkAccessForQuery": "Enabled"
+                }
+        },
+        {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "apiVersion": "2021-05-01-preview",
+            "scope": "[format('Microsoft.Communication/CommunicationServices/{0}', variables('communicationServicesName'))]",
+            "name": "[concat(variables('communicationServicesName'), '-all-logs')]",
+            "properties": {
+                "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('analyticsWorkspaceName'))]",
+                "logs": [
+                    {
+                        "categoryGroup": "allLogs",
+                        "category": null,
+                        "enabled": true
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', variables('analyticsWorkspaceName'))]",
+                "[resourceId('Microsoft.Communication/CommunicationServices', variables('communicationServicesName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.CognitiveServices/accounts",
+            "apiVersion": "2024-04-01-preview",
+            "name": "[variables('cognitiveServicesName')]",
+            "location": "[parameters('cognitiveServicesLocation')]",
+            "sku": {
+                "name": "[parameters('cognitiveServicesSku')]"
+            },
+            "kind": "CognitiveServices",
+            "identity": {
+                "type": "None"
+            },
+            "properties": {
+                "apiProperties": {},
+               "disableLocalAuth": "true",
+                "customSubDomainName": "[concat(variables('cognitiveServicesName'),'-', parameters('cognitiveServicesLocation'))]",
+                "networkAcls": {
+                    "defaultAction": "Allow",
+                    "virtualNetworkRules": [],
+                    "ipRules": []
+                },
+                "publicNetworkAccess": "Enabled"
+            }
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[guid(resourceGroup().id, variables('cognitiveServicesUserRole'))]",
+            "properties": {
+                "roleDefinitionId": "[variables('cognitiveServicesUserRole')]",
+                "principalId":"[reference(concat('Microsoft.Communication/CommunicationServices/', variables('communicationServicesName')), '2023-04-01', 'Full').identity.principalId]",
+                "principalType": "ServicePrincipal",
+                "scope": "[resourceGroup().id]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Communication/CommunicationServices', variables('communicationServicesName'))]"
+            ]
+        }
+    ],
+    "outputs": {
+        "communicationServicesHostName": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Communication/CommunicationServices', variables('communicationServicesName')), '2020-08-20').hostName]"
+        },
+        "ImmutableResourceId": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Communication/CommunicationServices', variables('communicationServicesName')), '2020-08-20').immutableResourceId]"
+        },
+         "logsAnalyticsWorkspaceProvisioningState": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', variables('analyticsWorkspaceName')), '2022-10-01').provisioningState]"
+        },
+        "storageQueueEndpoint": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2023-05-01').primaryEndpoints.queue]"
+        },
+        "userAssignedIdentityId": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('userAssignedIdentityName')), '2023-07-31-preview').principalId]"
+        },
+        "cognitiveSerivicesEndpoint": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', variables('cognitiveServicesName')), '2016-02-01-preview').endpoint]"
+        }
+    }
+}
