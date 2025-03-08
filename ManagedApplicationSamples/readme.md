@@ -5,12 +5,14 @@ Note: This sample is for Managed Application in Service Catalog. For Marketplace
 
 ## Package the files
 
-Note: Publish-ManagedApplications.ps1 powershell script pacakges the application and publishes to Azure. 
+### Prerequisite: Run the RegisterResourceProviders.ps1 script to register the resource providers before running the script.
+
+Note: Publish-ManagedApplication.ps1 powershell script pacakges the application and publishes to Azure. 
 
 Add the following files to a package file name managedcommunicationservices.zip. The files must be at the root folder of the zip file.
 1. creatUiDefinition.json
 1. mainTemplate.json
-1. nestedtemplates folder
+1. AzureTemplates folder
 
 Upload the managedcommunicationservices.zip to an Azure Storage account so you can use it when you deploy the managed application's definition. The storage account name must be globally unique across Azure and the length must be 3-24 characters with only lowercase letters and numbers. In the command, replace the placeholder <pkgstorageaccountname> including the anble brackets(<>), with your unique storage account name.
 
@@ -56,16 +58,33 @@ $blobparms = @{
 Set-AzStorageBlobContent @blobparms
 ````
 
-## Get group ID and role definition ID
+## Get group ID or Service Principal or userId and role definition ID
 The next step is to select a user, security group, or application for managing the resources for the customer. This identity has permissions on the managed resource group according to the assigned role. The role can be any Azure built-in role like Owner or Contributor.
 
 This example uses a security group, and your Microsoft Entra account should be a member of the group. To get the group's object ID, replace the placeholder <managedAppAccessGroup> including the angle brackets (<>), with your group's name. You use this variable's value when you deploy the managed application definition.
 
 ### Using Powershell
 
+For getting SecurityGroup ID
 ````powershell
-$principalid=(Get-AzADGroup -DisplayName <managedAppAccessGroup>).Id
+$groupId=(Get-AzADGroup -DisplayName <managedAppAccessGroup>).Id
 ````
+
+For getting ServicePrincipal
+````powershell
+$principalid=(Get-AzADServicePrincipal -DisplayName <servicePrincipalName>).Id
+````
+For getting UserId of 
+````powershell
+$userId = (Get-AzADUser -UserPrincipalName <username>).Id
+````
+
+For logged in user
+
+````powershell
+$userId = (Get-AzADUser -UserPrincipalName (Get-AzContext).Account).Id
+````
+
 
 Next, get the role definition ID of the Azure built-in role you want to grant access to the user, group, or application. You use this variable's value when you deploy the managed application definition.
 

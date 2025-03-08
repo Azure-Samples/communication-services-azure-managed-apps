@@ -1,0 +1,73 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "communicationServicesNamePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Communication Services name"
+            }
+        },
+        "todayUtcNow": {
+            "type": "string",
+            "defaultValue": "[utcNow('yyyyMMddHHmmss')]"
+        },
+        "cognitiveServicesNamePrefix": {
+            "type": "string"
+        },
+        "cognitiveServicesSku": {
+            "type": "string"
+        },
+        "cognitiveServicesLocation": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "communicationServicesName": "[concat(parameters('communicationServicesNamePrefix'), parameters('todayUtcNow'))]",
+        "cognitiveServicesUserRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')]",
+        "cognitiveServicesName": "[concat(parameters('cognitiveServicesNamePrefix'), parameters('todayUtcNow'))]"
+      },
+    "resources": [
+        {
+            "type": "Microsoft.CognitiveServices/accounts",
+            "apiVersion": "2024-04-01-preview",
+            "name": "[variables('cognitiveServicesName')]",
+            "location": "[parameters('cognitiveServicesLocation')]",
+            "sku": {
+                "name": "[parameters('cognitiveServicesSku')]"
+            },
+            "kind": "CognitiveServices",
+            "identity": {
+                "type": "None"
+            },
+            "properties": {
+                "apiProperties": {},
+               "disableLocalAuth": "true",
+                "customSubDomainName": "[concat(variables('cognitiveServicesName'),'-', parameters('cognitiveServicesLocation'))]",
+                "networkAcls": {
+                    "defaultAction": "Allow",
+                    "virtualNetworkRules": [],
+                    "ipRules": []
+                },
+                "publicNetworkAccess": "Enabled"
+            }
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[guid(resourceGroup().id, variables('cognitiveServicesUserRole'))]",
+            "properties": {
+                "roleDefinitionId": "[variables('cognitiveServicesUserRole')]",
+                "principalId":"[reference(concat('Microsoft.Communication/CommunicationServices/', variables('communicationServicesName')), '2023-04-01', 'Full').identity.principalId]",
+                "principalType": "ServicePrincipal",
+                "scope": "[resourceGroup().id]"
+            }
+        }
+    ],
+    "outputs": {
+        "cognitiveSerivicesEndpoint": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', variables('cognitiveServicesName')), '2016-02-01-preview').endpoint]"
+        }
+    }
+}

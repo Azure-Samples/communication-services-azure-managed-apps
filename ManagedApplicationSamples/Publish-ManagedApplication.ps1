@@ -1,6 +1,13 @@
-Connect-AzAccount
+Connect-AzAccount -Tenant <tenantId> -Subscription <subscriptionId>
 
-Get-AzSubscription -SubscriptionName <SubscriptionName> |Select-AzSubscription
+Get-AzSubscription -SubscriptionName <SubscriptionName> | Select-AzSubscription
+
+# Run the pre-requisite RegisterResourceProviders.ps1 script if Resource Providers are not already registered
+#Register-AzResourceProvider -ProviderNamespace Microsoft.Storage
+#Register-AzResourceProvider -ProviderNamespace Microsoft.Communication
+#Register-AzResourceProvider -ProviderNamespace Microsoft.CognitiveServices
+#Register-AzResourceProvider -ProviderNamespace Microsoft.EventGrid
+#Register-AzResourceProvider -ProviderNamespace Microsoft.Solutions
 
 # Create ResourceGroup for the Storage
 New-AzResourceGroup -Name acsManagedAppsPkgStorageGroup -Location westus
@@ -59,7 +66,7 @@ $roleid=(Get-AzRoleDefinition -Name Owner).Id
 $roleid2=(Get-AzRoleDefinition -Name "EventGrid Data Sender").Id
 
 # Get the ServicePrincipal Id
-$principalid=(Get-AzADGroup -DisplayName <SecurityGroup>).Id
+$principalid=(Get-AzADServicePrincipal -DisplayName <ServicePrincipalName>).Id
 
 # Publish ManagedApplication and assign the SP roles defined above.
 $publishparms = @{

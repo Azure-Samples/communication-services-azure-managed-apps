@@ -43,35 +43,23 @@
         }
     },
     "variables": {
-        "nestedTemplateUri": "[uri(deployment().properties.templateLink.uri, 'nestedtemplates/communicationServices.json')]"
+        "linkedStorageQueueTemplateUri": "[uri(deployment().properties.templateLink.uri, 'AzureTemplates/storageQueue/storageQueue.json')]",
+        "linkedLogsAnalyticsTemplateUri": "[uri(deployment().properties.templateLink.uri, 'AzureTemplates/logsAnalytics/logsAnalytics.json')]",
+        "linkedCognitiveServicesTemplateUri": "[uri(deployment().properties.templateLink.uri, 'AzureTemplates/cognitiveServices/cognitiveServices.json')]",
+        "linkedCommunicationServicesTemplateUri": "[uri(deployment().properties.templateLink.uri, 'AzureTemplates/communicationServices/communicationServices.json')]"
     },
     "resources": [
         {
             "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2019-10-01",
-            "name": "nestedDeployment",
+            "apiVersion": "2021-04-01",
+            "name": "linkedStorageQueueDeployment",
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
                     "contentVersion": "1.0.0.0",
-                    "uri": "[variables('nestedTemplateUri')]"
+                    "uri": "[variables('linkedStorageQueueTemplateUri')]"
                 },
                 "parameters": {
-                    "communicationServicesNamePrefix": {
-                        "value": "[parameters('communicationServicesNamePrefix')]"
-                    },
-                    "location": {
-                        "value": "[parameters('location')]"
-                    },
-                    "datalocation": {
-                        "value": "[parameters('datalocation')]"
-                    },
-                    "analyticsWorkspaceNamePrefix":{
-                        "value": "[parameters('analyticsWorkspaceNamePrefix')]"
-                    },
-                    "userAssignedIdentityName": {
-                        "value": "[parameters('userAssignedIdentityName')]"
-                    },
                     "todayUtcNow": {
                         "value": "[parameters('todayUtcNow')]"
                     },
@@ -83,6 +71,90 @@
                     },
                     "storageAccountLocation": {
                         "value": "[parameters('storageAccountLocation')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "linkedCommunicationServicesDeployment",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'linkedStorageQueueDeployment')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "contentVersion": "1.0.0.0",
+                    "uri": "[variables('linkedCommunicationServicesTemplateUri')]"
+                },
+                "parameters": {
+                    "communicationServicesNamePrefix": {
+                        "value": "[parameters('communicationServicesNamePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "datalocation": {
+                        "value": "[parameters('datalocation')]"
+                    },
+                    "userAssignedIdentityName": {
+                        "value": "[parameters('userAssignedIdentityName')]"
+                    },
+                    "todayUtcNow": {
+                        "value": "[parameters('todayUtcNow')]"
+                    },
+                    "storageAccountNamePrefix": {
+                        "value": "[parameters('storageAccountNamePrefix')]"
+                    }                    
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "linkedLogsAnalyticsDeployment",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'linkedCommunicationServicesDeployment')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "contentVersion": "1.0.0.0",
+                    "uri": "[variables('linkedLogsAnalyticsTemplateUri')]"
+                },
+                "parameters": {
+                    "communicationServicesNamePrefix": {
+                        "value": "[parameters('communicationServicesNamePrefix')]"
+                    },
+                    "analyticsWorkspaceNamePrefix":{
+                        "value": "[parameters('analyticsWorkspaceNamePrefix')]"
+                    },
+                    "todayUtcNow": {
+                        "value": "[parameters('todayUtcNow')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "linkedCognitiveServicesDeployment",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'linkedCommunicationServicesDeployment')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "contentVersion": "1.0.0.0",
+                    "uri": "[variables('linkedCognitiveServicesTemplateUri')]"
+                },
+                "parameters": {
+                    "communicationServicesNamePrefix": {
+                        "value": "[parameters('communicationServicesNamePrefix')]"
+                    },
+                    "todayUtcNow": {
+                        "value": "[parameters('todayUtcNow')]"
                     },
                     "cognitiveServicesNamePrefix": {
                         "value": "[parameters('cognitiveServicesNamePrefix')]"
@@ -98,29 +170,29 @@
         }
     ],
     "outputs": {
-        "communicationServicesHostName": {
-            "type": "string",
-            "value": "[reference('nestedDeployment').outputs.communicationServicesHostName.value]"
-        },
-        "ImmutableResourceId": {
-            "type": "string",
-            "value": "[reference('nestedDeployment').outputs.ImmutableResourceId.value]"
-        },
-        "logsAnalyticsWorkspaceProvisioningState": {
-            "type": "string",
-            "value": "[reference('nestedDeployment').outputs.logsAnalyticsWorkspaceProvisioningState.value]"
-        },
         "storageQueueEndpoint": {
             "type": "string",
-            "value": "[reference('nestedDeployment').outputs.storageQueueEndpoint.value]"
+            "value": "[reference('linkedStorageQueueDeployment').outputs.storageQueueEndpoint.value]"
         },
         "userAssignedIdentityId": {
             "type": "string",
-            "value": "[reference('nestedDeployment').outputs.userAssignedIdentityId.value]"
+            "value": "[reference('linkedCommunicationServicesDeployment').outputs.userAssignedIdentityId.value]"
+        },
+        "communicationServicesHostName": {
+            "type": "string",
+            "value": "[reference('linkedCommunicationServicesDeployment').outputs.communicationServicesHostName.value]"
+        },
+        "ImmutableResourceId": {
+            "type": "string",
+            "value": "[reference('linkedCommunicationServicesDeployment').outputs.ImmutableResourceId.value]"
+        },
+        "logsAnalyticsWorkspaceProvisioningState": {
+            "type": "string",
+            "value": "[reference('linkedLogsAnalyticsDeployment').outputs.logsAnalyticsWorkspaceProvisioningState.value]"
         },
         "cognitiveSerivicesEndpoint": {
             "type": "string",
-            "value": "[reference('nestedDeployment').outputs.cognitiveSerivicesEndpoint.value]"
+            "value": "[reference('linkedCognitiveServicesDeployment').outputs.cognitiveSerivicesEndpoint.value]"
         }
     }
 }
