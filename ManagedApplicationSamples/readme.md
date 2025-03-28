@@ -1,6 +1,6 @@
 # Managed Communication Services
 
-Note: This sample is for Managed Application in Service Catalog. For Marketplace, please see these instructions:
+Note: This sample is for Managed Application in Service Catalog. For Marketplace, see the instructions at:
 [**Marketplace Managed Application**](https://docs.microsoft.com/en-us/azure/managed-applications/publish-marketplace-app)
 
 ## Package the files
