@@ -28,7 +28,7 @@ Please include the requested information listed below (as much as you can provid
 
 This information helps us quickly triage your report.
 
-If you are reporting for a bug bounty, more complete reports can contribute to a higher bounty award. Please visit our [Microsoft Bug Bounty Program](https://aka.ms/opensource/security/bounty) page for more details about our active programs.
+If you are reporting for a bug bounty, more complete reports can contribute to a higher bounty award. See our [Microsoft Bug Bounty Program](https://aka.ms/opensource/security/bounty) page for more details about our active programs.
 
 ## Preferred Languages
 
