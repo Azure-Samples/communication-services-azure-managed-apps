@@ -7,7 +7,7 @@ Note: This sample is for Managed Application in Service Catalog. For Marketplace
 
 ### Prerequisite: Run the `RegisterResourceProviders.ps1` script to register the resource providers before running the Managed Applications script
 
-Note: Publish-ManagedApplication.ps1 powershell script pacakges the application and publishes to Azure. 
+Note: The `Publish-ManagedApplication.ps1` PowerShell script packages the application and publishes to Azure. 
 
 Add the following files to a package file name managedcommunicationservices.zip. The files must be at the root folder of the zip file.
 1. creatUiDefinition.json
