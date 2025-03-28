@@ -9,7 +9,7 @@ Note: This sample is for Managed Application in Service Catalog. For Marketplace
 
 Note: The `Publish-ManagedApplication.ps1` PowerShell script packages the application and publishes to Azure. 
 
-Add the following files to a package file name managedcommunicationservices.zip. The files must be at the root folder of the zip file.
+Add the following files to a package file name `managedcommunicationservices.zip`. The files must be at the root folder of the zip file.
 1. creatUiDefinition.json
 1. mainTemplate.json
 1. AzureTemplates folder
