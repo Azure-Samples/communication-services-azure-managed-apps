@@ -1,0 +1,194 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "communicationServicesNamePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Communication Services name"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "global",
+            "metadata": {
+                "description": "Communication Services location"
+            }
+        },
+        "datalocation": {
+            "type": "string",
+            "metadata": {
+                "description": "Communication Services datalocation"
+            }
+        },
+        "userAssignedIdentityName": {
+            "type": "string",
+            "metadata": {
+                "description": "UserAssigned Identity name"
+            }
+        },
+        "todayUtcNow": {
+            "type": "string",
+            "defaultValue": "[utcNow('yyyyMMddHHmmss')]"
+        },
+        "storageAccountNamePrefix": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "communicationServicesName": "[concat(parameters('communicationServicesNamePrefix'), parameters('todayUtcNow'))]",
+        "systemtopicName": "[concat(variables('communicationServicesName'), '-topic')]",
+        "eventSubscriptionName": "[concat(variables('systemTopicName'), '/acseventsWebhookSub')]",
+        "storageQueueEventSubscriptionName": "[concat(variables('systemTopicName'), '/acseventsStorageQueueSub')]",
+        "storageAccountName": "[concat(parameters('storageAccountNamePrefix'), parameters('todayUtcNow'))]",
+        "storagequeueName" : "eventsqueue",
+        "storageQueueDataSenderRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')]"
+       },
+    "resources": [        
+        {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "2023-07-31-preview",
+            "name": "[parameters('userAssignedIdentityName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {}
+        },        
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2022-04-01",
+            "name": "[guid(resourceGroup().id, variables('storageQueueDataSenderRole'))]",
+            "properties": {
+                "roleDefinitionId": "[variables('storageQueueDataSenderRole')]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('userAssignedIdentityName')), '2023-07-31-preview').principalId]",
+                "principalType": "ServicePrincipal",
+                "scope": "[resourceGroup().id]"
+            }
+        },  
+        {
+            "type": "Microsoft.Communication/CommunicationServices",
+            "apiVersion": "2023-06-01-preview",
+            "name": "[variables('communicationServicesName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "dataLocation": "[parameters('datalocation')]"
+            },
+            "identity": {
+                "type": "SystemAssigned,UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('userAssignedIdentityName'))]": {}
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('userAssignedIdentityName'))]"
+            ]
+        },
+        {
+            "name": "[variables('systemtopicName')]",
+            "type": "Microsoft.EventGrid/systemTopics",
+            "apiVersion": "2023-06-01-preview",
+            "location": "[parameters('location')]",
+            "properties": {
+                "source": "[resourceId('Microsoft.Communication/CommunicationServices', variables('communicationServicesName'))]",
+                "topicType": "Microsoft.Communication.CommunicationServices",
+                "mode": "Incremental"
+            },
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('userAssignedIdentityName'))]": {}
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Communication/CommunicationServices', variables('communicationServicesName'))]",
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('userAssignedIdentityName'))]"
+            ]
+        },
+        {
+            "name": "[variables('eventSubscriptionName')]",
+            "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions",
+            "apiVersion": "2023-06-01-preview",
+            "properties": {
+                "destination": {
+                    "endpointType": "Webhook",
+                    "properties":{  
+                        "endpointUrl": "https://acseventgridviewer.azurewebsites.net/api/updates",
+                        "maxEventsPerBatch":1,  
+                        "preferredBatchSizeInKilobytes":64
+                    }    
+                },
+                "eventDeliverySchema": "EventGridSchema",
+                "filter": {
+                    "enableAdvancedFilteringOnArrays": true,
+                    "includedEventTypes": [
+                        "Microsoft.Communication.ChatMessageReceived",
+                        "Microsoft.Communication.IncomingCall"
+                    ],
+                    "isSubjectCaseSensitive": false
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.EventGrid/systemTopics', variables('systemtopicName'))]"
+            ]
+       },
+       {
+            "name": "[variables('storageQueueEventSubscriptionName')]",
+            "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions",
+            "apiVersion": "2023-06-01-preview",
+            "properties": {
+                "destination": {
+                    "properties": {
+                        "resourceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+                        "queueName": "[variables('storagequeueName')]",
+                        "queueMessageTimeToLiveInSeconds": 604800
+                    },
+                    "endpointType": "StorageQueue"
+                },
+                "eventDeliverySchema": "EventGridSchema",
+                "retryPolicy": {
+                  "eventTimeToLiveInMinutes": 10,
+                  "maxDeliveryAttempts": 10
+                },
+                "filter": {
+                    "enableAdvancedFilteringOnArrays": true,
+                    "includedEventTypes": [
+                        "Microsoft.Communication.ChatMessageReceived",
+                        "Microsoft.Communication.ChatMessageEdited",
+                        "Microsoft.Communication.ChatMessageDeleted",
+                        "Microsoft.Communication.ChatThreadCreatedWithUser",
+                        "Microsoft.Communication.ChatThreadWithUserDeleted",
+                        "Microsoft.Communication.ChatThreadPropertiesUpdatedPerUser",
+                        "Microsoft.Communication.ChatParticipantAddedToThreadWithUser",
+                        "Microsoft.Communication.ChatParticipantRemovedFromThreadWithUser",
+                        "Microsoft.Communication.ChatThreadCreated",
+                        "Microsoft.Communication.ChatThreadDeleted",
+                        "Microsoft.Communication.ChatThreadParticipantAdded",
+                        "Microsoft.Communication.ChatThreadParticipantRemoved",
+                        "Microsoft.Communication.ChatMessageReceivedInThread",
+                        "Microsoft.Communication.ChatThreadPropertiesUpdated",
+                        "Microsoft.Communication.ChatMessageEditedInThread",
+                        "Microsoft.Communication.ChatMessageDeletedInThread",
+                        "Microsoft.Communication.IncomingCall",
+                        "Microsoft.Communication.SMSReceived"
+                    ],
+                    "isSubjectCaseSensitive": false
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.EventGrid/systemTopics', variables('systemtopicName'))]"
+           ]
+       }
+    ],
+    "outputs": {
+        "communicationServicesHostName": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Communication/CommunicationServices', variables('communicationServicesName')), '2020-08-20').hostName]"
+        },
+        "ImmutableResourceId": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Communication/CommunicationServices', variables('communicationServicesName')), '2020-08-20').immutableResourceId]"
+        },
+        "userAssignedIdentityId": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('userAssignedIdentityName')), '2023-07-31-preview').principalId]"
+        }
+    }
+}

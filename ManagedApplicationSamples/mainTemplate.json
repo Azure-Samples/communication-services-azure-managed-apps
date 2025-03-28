@@ -1,0 +1,198 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "communicationServicesNamePrefix": {
+            "type": "string"
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "global"
+        },
+        "datalocation": {
+            "type": "string"
+        },
+        "analyticsWorkspaceNamePrefix": {
+            "type": "string"
+        },
+        "userAssignedIdentityName": {
+            "type": "string"
+        },
+        "todayUtcNow": {
+            "type": "string",
+            "defaultValue": "[utcNow('yyyyMMddHHmmss')]"
+        },
+        "storageAccountNamePrefix": {
+            "type": "string"
+        },
+        "storageAccountType": {
+            "type": "string"
+        },
+        "storageAccountLocation": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]"
+        },
+        "cognitiveServicesNamePrefix": {
+            "type": "string"
+        },
+        "cognitiveServicesSku": {
+            "type": "string"
+        },
+        "cognitiveServicesLocation": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "linkedStorageQueueTemplateUri": "[uri(deployment().properties.templateLink.uri, 'AzureTemplates/storageQueue/storageQueue.json')]",
+        "linkedLogsAnalyticsTemplateUri": "[uri(deployment().properties.templateLink.uri, 'AzureTemplates/logsAnalytics/logsAnalytics.json')]",
+        "linkedCognitiveServicesTemplateUri": "[uri(deployment().properties.templateLink.uri, 'AzureTemplates/cognitiveServices/cognitiveServices.json')]",
+        "linkedCommunicationServicesTemplateUri": "[uri(deployment().properties.templateLink.uri, 'AzureTemplates/communicationServices/communicationServices.json')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "linkedStorageQueueDeployment",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "contentVersion": "1.0.0.0",
+                    "uri": "[variables('linkedStorageQueueTemplateUri')]"
+                },
+                "parameters": {
+                    "todayUtcNow": {
+                        "value": "[parameters('todayUtcNow')]"
+                    },
+                    "storageAccountNamePrefix": {
+                        "value": "[parameters('storageAccountNamePrefix')]"
+                    },
+                    "storageAccountType": {
+                        "value": "[parameters('storageAccountType')]"
+                    },
+                    "storageAccountLocation": {
+                        "value": "[parameters('storageAccountLocation')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "linkedCommunicationServicesDeployment",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'linkedStorageQueueDeployment')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "contentVersion": "1.0.0.0",
+                    "uri": "[variables('linkedCommunicationServicesTemplateUri')]"
+                },
+                "parameters": {
+                    "communicationServicesNamePrefix": {
+                        "value": "[parameters('communicationServicesNamePrefix')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "datalocation": {
+                        "value": "[parameters('datalocation')]"
+                    },
+                    "userAssignedIdentityName": {
+                        "value": "[parameters('userAssignedIdentityName')]"
+                    },
+                    "todayUtcNow": {
+                        "value": "[parameters('todayUtcNow')]"
+                    },
+                    "storageAccountNamePrefix": {
+                        "value": "[parameters('storageAccountNamePrefix')]"
+                    }                    
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "linkedLogsAnalyticsDeployment",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'linkedCommunicationServicesDeployment')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "contentVersion": "1.0.0.0",
+                    "uri": "[variables('linkedLogsAnalyticsTemplateUri')]"
+                },
+                "parameters": {
+                    "communicationServicesNamePrefix": {
+                        "value": "[parameters('communicationServicesNamePrefix')]"
+                    },
+                    "analyticsWorkspaceNamePrefix":{
+                        "value": "[parameters('analyticsWorkspaceNamePrefix')]"
+                    },
+                    "todayUtcNow": {
+                        "value": "[parameters('todayUtcNow')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "linkedCognitiveServicesDeployment",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'linkedCommunicationServicesDeployment')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "contentVersion": "1.0.0.0",
+                    "uri": "[variables('linkedCognitiveServicesTemplateUri')]"
+                },
+                "parameters": {
+                    "communicationServicesNamePrefix": {
+                        "value": "[parameters('communicationServicesNamePrefix')]"
+                    },
+                    "todayUtcNow": {
+                        "value": "[parameters('todayUtcNow')]"
+                    },
+                    "cognitiveServicesNamePrefix": {
+                        "value": "[parameters('cognitiveServicesNamePrefix')]"
+                    },
+                    "cognitiveServicesSku": {
+                        "value": "[parameters('cognitiveServicesSku')]"
+                    },
+                    "cognitiveServicesLocation": {
+                        "value": "[parameters('cognitiveServicesLocation')]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "storageQueueEndpoint": {
+            "type": "string",
+            "value": "[reference('linkedStorageQueueDeployment').outputs.storageQueueEndpoint.value]"
+        },
+        "userAssignedIdentityId": {
+            "type": "string",
+            "value": "[reference('linkedCommunicationServicesDeployment').outputs.userAssignedIdentityId.value]"
+        },
+        "communicationServicesHostName": {
+            "type": "string",
+            "value": "[reference('linkedCommunicationServicesDeployment').outputs.communicationServicesHostName.value]"
+        },
+        "ImmutableResourceId": {
+            "type": "string",
+            "value": "[reference('linkedCommunicationServicesDeployment').outputs.ImmutableResourceId.value]"
+        },
+        "logsAnalyticsWorkspaceProvisioningState": {
+            "type": "string",
+            "value": "[reference('linkedLogsAnalyticsDeployment').outputs.logsAnalyticsWorkspaceProvisioningState.value]"
+        },
+        "cognitiveSerivicesEndpoint": {
+            "type": "string",
+            "value": "[reference('linkedCognitiveServicesDeployment').outputs.cognitiveSerivicesEndpoint.value]"
+        }
+    }
+}

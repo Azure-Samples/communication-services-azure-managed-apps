@@ -1,0 +1,74 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "communicationServicesNamePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Communication Services name"
+            }
+        },
+        "analyticsWorkspaceNamePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Logs Analytics Workspace name"
+            }
+        },
+        "todayUtcNow": {
+            "type": "string",
+            "defaultValue": "[utcNow('yyyyMMddHHmmss')]"
+        }
+    },
+    "variables": {
+        "communicationServicesName": "[concat(parameters('communicationServicesNamePrefix'), parameters('todayUtcNow'))]",
+        "analyticsWorkspaceName":"[concat(parameters('analyticsWorkspaceNamePrefix'), parameters('todayUtcNow'))]"
+    },
+    "resources": [
+       {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2022-10-01",
+            "name": "[variables('analyticsWorkspaceName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "sku": {
+                    "name": "pergb2018"
+                },
+                "retentionInDays": 30,
+                "features": {
+                    "enableLogAccessUsingOnlyResourcePermissions": true
+                },
+                "workspaceCapping": {
+                    "dailyQuotaGb": -1
+                },
+                "publicNetworkAccessForIngestion": "Enabled",
+                "publicNetworkAccessForQuery": "Enabled"
+                }
+        },
+        {
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "apiVersion": "2021-05-01-preview",
+            "scope": "[format('Microsoft.Communication/CommunicationServices/{0}', variables('communicationServicesName'))]",
+            "name": "[concat(variables('communicationServicesName'), '-all-logs')]",
+            "properties": {
+                "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('analyticsWorkspaceName'))]",
+                "logs": [
+                    {
+                        "categoryGroup": "allLogs",
+                        "category": null,
+                        "enabled": true
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', variables('analyticsWorkspaceName'))]"
+            ]
+        }
+    ],
+    "outputs": {
+        "logsAnalyticsWorkspaceProvisioningState": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', variables('analyticsWorkspaceName')), '2022-10-01').provisioningState]"
+        }
+        
+    }
+}

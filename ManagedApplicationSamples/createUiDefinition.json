@@ -1,0 +1,319 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Azure.CreateUIDef",
+    "version": "0.1.2-preview",
+    "parameters": {
+        "basics": [
+            {}
+        ],
+        "steps": [
+            {
+                "name": "communicationServicesConfig",
+                "label": "Communication Services settings",
+                "subLabel": {
+                    "preValidation": "Configure the infrastructure settings",
+                    "postValidation": "Done"
+                },
+                "bladeTitle": "Communication Services settings",
+                "elements": [
+                    {
+                        "name": "communicationServicesNamePrefix",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Communication Services Name Prefix",
+                        "defaultValue": "AcsResource",
+                        "toolTip": "Use only allowed characters",
+                        "constraints": {
+                          "required": true,
+                          "regex": "^[a-z0-9A-Z]{6,30}$",
+                          "validationMessage": "Only alphanumeric characters are allowed, and the value must be 6-30 characters long."
+                        },
+                        "visible": true
+                    },
+                    {
+                        "name": "communicationServicesDataLocation",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Communication Services DataLocation",                        
+                        "defaultValue": "United States",
+                        "toolTip": "Use only allowed data locations",
+                        "constraints": {
+                            "required": true,
+                            "allowedValues": [
+                                {
+                                    "label": "United States",
+                                    "value": "UnitedStates"
+                                },
+                                {
+                                    "label": "Europe",
+                                    "value": "Europe"
+                                },
+                                {
+                                    "label": "Australia",
+                                    "value": "Australia"
+                                },
+                                {
+                                    "label": "Asia Pacific",
+                                    "value": "AsiaPacific"
+                                },
+                                {
+                                    "label": "Brazil",
+                                    "value": "Brazil"
+                                },
+                                {
+                                    "label": "Canada",
+                                    "value": "Canada"
+                                },
+                                {
+                                    "label": "Germany",
+                                    "value": "Germany"
+                                },
+                                {
+                                    "label": "France",
+                                    "value": "France"
+                                },
+                            {
+                                    "label": "Africa",
+                                    "value": "Africa"
+                                },
+                                {
+                                    "label": "India",
+                                    "value": "India"
+                                },
+                                {
+                                    "label": "Japan",
+                                    "value": "Japan"
+                                },
+                                {
+                                    "label": "Korea",
+                                    "value": "Korea"
+                                },
+                                {
+                                    "label": "UAE",
+                                    "value": "UAE"
+                                },
+                                {
+                                    "label": "Switzerland",
+                                    "value": "Switzerland"
+                                },
+                                {
+                                    "label": "Norway",
+                                    "value": "Norway"
+                                }
+                            ]
+                        },
+                        "visible": true
+                    },
+                    {
+                        "name": "analyticsWorkspaceNamePrefix",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Logs Analytics Workspace Name Prefix",
+                        "defaultValue": "AcsLogsAnalyticsWorkspace",
+                        "toolTip": "Use only allowed characters",
+                        "constraints": {
+                          "required": true,
+                          "regex": "^[a-z0-9A-Z]{6,30}$",
+                          "validationMessage": "Only alphanumeric characters are allowed, and the value must be 6-30 characters long."
+                        },
+                        "visible": true
+                    },
+                    {
+                        "name": "userAssignedIdentityName",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "UserAssigned Identity Name",
+                        "defaultValue": "acsmanagedidentity",
+                        "toolTip": "Use only allowed characters",
+                        "constraints": {
+                          "required": true,
+                          "regex": "^[a-z0-9A-Z]{6,30}$",
+                          "validationMessage": "Only alphanumeric characters are allowed, and the value must be 6-30 characters long."
+                        },
+                        "visible": true
+                    }
+                ]
+            },
+            {
+                "name": "storageConfig",
+                "label": "Storage Account Settings",
+                "subLabel": {
+                    "preValidation": "Configure the storage account settings",
+                    "postValidation": "Done"
+                },
+                "bladeTitle": "Storage Account",
+                "elements": [
+                    {
+                        "name": "storageAccounts",
+                        "type": "Microsoft.Storage.MultiStorageAccountCombo",
+                        "label": {
+                            "prefix": "Storage account name prefix",
+                            "type": "Storage account type"
+                        },
+                        "defaultValue": {
+                            "prefix": "stmademo",
+                            "type": "Standard_LRS"
+                        },
+                        "constraints": {
+                            "allowedTypes": [
+                                "Premium_LRS",
+                                "Standard_LRS",
+                                "Standard_GRS"
+                            ]
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "cognitiveServicesConfig",
+                "label": "Cognitive Services Settings",
+                "subLabel": {
+                    "preValidation": "Configure the infrastructure settings",
+                    "postValidation": "Done"
+                },
+                "bladeTitle": "Cognitive Services",
+                "elements": [
+                    {
+                        "name": "cognitiveServicesNamePrefix",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Cognitive Services Name Prefix",
+                        "defaultValue": "CognitiveServices",
+                        "toolTip": "Use only allowed characters",
+                        "constraints": {
+                          "required": true,
+                          "regex": "^[a-z0-9A-Z]{6,30}$",
+                          "validationMessage": "Only alphanumeric characters are allowed, and the value must be 6-30 characters long."
+                        },
+                        "visible": true
+                    },
+                    {
+                        "name": "cognitiveServicesSku",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Pricing Tier",                        
+                        "defaultValue": "Standard S0",
+                        "toolTip": "Pricing Tier determines how much you will be billed each month",
+                        "constraints": {
+                            "required": true,
+                            "allowedValues": [
+                                {
+                                    "label": "Standard S0",
+                                    "value": "S0"
+                                }
+                            ]
+                        },
+                        "visible": true
+                    },
+                    {
+                        "name": "cognitiveServicesLocation",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Region",                        
+                        "defaultValue": "East US",
+                        "toolTip": "Choose the Azure Region that is good for you and your customers",
+                        "constraints": {
+                            "required": true,
+                            "allowedValues": [                                
+                                {
+                                    "label": "Brazil South",
+                                    "value": "BrazilSouth"
+                                },
+                                {
+                                    "label": "Canada Central",
+                                    "value": "CanadaCentral"
+                                },
+                                {
+                                    "label": "Canada East",
+                                    "value": "CanadaEast"
+                                },
+                                {
+                                    "label": "Central US EUAP",
+                                    "value": "CentralUSEUAP"
+                                },
+                                {
+                                    "label": "East US",
+                                    "value": "EastUS"
+                                },
+                                {
+                                    "label": "East US 2",
+                                    "value": "EastUS2"
+                                },
+                                {
+                                    "label": "East US EUAP",
+                                    "value": "EastUSEUAP"
+                                },
+                                {
+                                    "label": "France Central",
+                                    "value": "FranceCentral"
+                                },
+                                {
+                                    "label": "Germany West Central",
+                                    "value": "GermanyWestCentral"
+                                },
+                                {
+                                    "label": "Japan East",
+                                    "value": "JapanEast"
+                                },
+                                {
+                                    "label": "North Central US",
+                                    "value": "NorthCentralUS"
+                                },
+                                {
+                                    "label": "Norway East",
+                                    "value": "NorwayEast"
+                                },
+                                {
+                                    "label": "Poland Central",
+                                    "value": "PolandCentral"
+                                },
+                                {
+                                    "label": "South Africa North",
+                                    "value": "SouthAfricaNorth"
+                                },
+                                {
+                                    "label": "South Central US",
+                                    "value": "SouthCentralUS"
+                                },
+                                {
+                                    "label": "South India",
+                                    "value": "SouthIndia"
+                                },
+                                {
+                                    "label": "Sweden Central",
+                                    "value": "SwedenCentral"
+                                },
+                                {
+                                    "label": "Switzerland North",
+                                    "value": "SwitzerlandNorth"
+                                },
+                                {
+                                    "label": "UK South",
+                                    "value": "UKSouth"
+                                },
+                                {
+                                    "label": "West Europe",
+                                    "value": "WestEurope"
+                                },
+                                {
+                                    "label": "West US",
+                                    "value": "WestUS"
+                                },
+                                {
+                                    "label": "West US 3",
+                                    "value": "WestUS3"
+                                }
+                            ]
+                        },
+                        "visible": true
+                    }
+                ]
+            }
+        ],
+        "outputs": {
+            "communicationServicesNamePrefix" : "[steps('communicationServicesConfig').communicationServicesNamePrefix]",
+            "datalocation": "[steps('communicationServicesConfig').communicationServicesDataLocation]",
+            "analyticsWorkspaceNamePrefix" : "[steps('communicationServicesConfig').analyticsWorkspaceNamePrefix]",
+            "userAssignedIdentityName" : "[steps('communicationServicesConfig').userAssignedIdentityName]",
+            "storageAccountNamePrefix": "[steps('storageConfig').storageAccounts.prefix]",
+            "storageAccountType": "[steps('storageConfig').storageAccounts.type]",
+            "storageAccountLocation": "[location()]",
+            "cognitiveServicesNamePrefix" : "[steps('cognitiveServicesConfig').cognitiveServicesNamePrefix]",
+            "cognitiveServicesSku": "[steps('cognitiveServicesConfig').cognitiveServicesSku]",
+            "cognitiveServicesLocation": "[steps('cognitiveServicesConfig').cognitiveServicesLocation]"
+        }
+    }
+}
