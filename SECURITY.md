@@ -16,7 +16,7 @@ If you prefer to submit without logging in, send email to [secure@microsoft.com]
 
 You should receive a response within 24 hours. If for some reason you do not, follow up via email to ensure we received your original message. For more information, see [microsoft.com/msrc](https://aka.ms/opensource/security/msrc). 
 
-Please include the requested information listed below (as much as you can provide) to help us better understand the nature and scope of the possible issue:
+Include as much of the following requested information as you can to help us better understand the nature and scope of the possible issue:
 
   * Type of issue (such as buffer overflow, SQL injection, cross-site scripting, and so on)
   * Full paths of source file(s) related to the manifestation of the issue
